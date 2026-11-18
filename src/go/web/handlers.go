@@ -32,6 +32,8 @@ import (
 	"phenix/api/settings"
 	"phenix/api/vm"
 	"phenix/app"
+	"phenix/store"
+	"phenix/types"
 	putil "phenix/util"
 	"phenix/util/common"
 	"phenix/util/mm"
@@ -3673,6 +3675,58 @@ func GetTopologies(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	_, _ = w.Write(body) //nolint:gosec // XSS via taint analysis
+}
+
+// GetTopologyNetworkSegments - GET /topologies/{topo}/network-segments.
+func GetTopologyNetworkSegments(w http.ResponseWriter, r *http.Request) {
+	var (
+		ctx  = r.Context()
+		role = middleware.RoleFromContext(ctx)
+		vars = mux.Vars(r)
+		topo = vars["topo"]
+	)
+
+	if !role.Allowed("topologies", "get", topo) {
+		user := middleware.UserFromContext(ctx)
+		plog.Warn(
+			plog.TypeSecurity,
+			"getting topology network segments not allowed",
+			user,
+		)
+		http.Error(w, "forbidden", http.StatusForbidden)
+
+		return
+	}
+
+	c, err := store.NewConfig("topology/" + topo)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+
+		return
+	}
+
+	if err := store.Get(c); err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+
+		return
+	}
+
+	topology, err := types.DecodeTopologyFromConfig(*c)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+
+		return
+	}
+
+	body, err := json.Marshal(util.WithRoot("network_segments", topology.NetworkSegments()))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
 	_, _ = w.Write(body) //nolint:gosec // XSS via taint analysis
 }
 

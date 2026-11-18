@@ -1177,6 +1177,27 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Topologies"
+  "/topologies/{topology}/network-segments":
+    get:
+      tags:
+        - Topologies
+      summary: Get effective network segments for a topology
+      description: ""
+      operationId: getTopologyNetworkSegments
+      parameters:
+        - name: topology
+          in: path
+          description: topology name
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NetworkSegments"
   "/disks":
     get:
       tags:
@@ -4116,6 +4137,49 @@ components:
           type: array
           items:
             type: string
+    NetworkSegments:
+      type: object
+      properties:
+        network_segments:
+          type: array
+          items:
+            $ref: "#/components/schemas/NetworkSegment"
+    NetworkSegment:
+      type: object
+      properties:
+        bridge:
+          type: string
+        vlan:
+          type: string
+        endpoints:
+          type: array
+          items:
+            $ref: "#/components/schemas/NetworkSegmentEndpoint"
+    NetworkSegmentEndpoint:
+      type: object
+      properties:
+        hostname:
+          type: string
+        interface:
+          type: string
+        type:
+          type: string
+        proto:
+          type: string
+        address:
+          type: string
+        mask:
+          type: integer
+        gateway:
+          type: string
+        mac:
+          type: string
+        mtu:
+          type: integer
+        qinq:
+          type: boolean
+        external:
+          type: boolean
     Disks:
       type: object
       properties:

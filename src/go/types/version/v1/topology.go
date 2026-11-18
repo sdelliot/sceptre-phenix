@@ -9,6 +9,8 @@ import (
 	ifaces "phenix/types/interfaces"
 )
 
+const defaultSegmentBridge = "phenix"
+
 type TopologySpec struct {
 	IncludeTopologiesF []string `json:"includeTopologies" mapstructure:"includeTopologies" structs:"includeTopologies" yaml:"includeTopologies"`
 	NodesF             []*Node  `json:"nodes"             mapstructure:"nodes"             structs:"nodes"             yaml:"nodes"`
@@ -74,6 +76,59 @@ func (t *TopologySpec) SchedulableNodes(platform string) []ifaces.NodeSpec {
 	}
 
 	return schedulable
+}
+
+func (t *TopologySpec) NetworkSegments() []ifaces.NetworkSegment {
+	if t == nil {
+		return nil
+	}
+
+	var segments []ifaces.NetworkSegment
+	seen := make(map[string]int)
+
+	for _, node := range t.NodesF {
+		if node == nil || node.GeneralF == nil || node.NetworkF == nil {
+			continue
+		}
+
+		for _, iface := range node.NetworkF.InterfacesF {
+			if iface == nil {
+				continue
+			}
+
+			bridge := iface.BridgeF
+			if bridge == "" {
+				bridge = defaultSegmentBridge
+			}
+
+			key := bridge + "\x00" + iface.VLANF
+			idx, ok := seen[key]
+			if !ok {
+				idx = len(segments)
+				seen[key] = idx
+				segments = append(segments, ifaces.NetworkSegment{
+					Bridge: bridge,
+					VLAN:   iface.VLANF,
+				})
+			}
+
+			segments[idx].Endpoints = append(segments[idx].Endpoints, ifaces.NetworkSegmentEndpoint{
+				Hostname:  node.GeneralF.HostnameF,
+				Interface: iface.NameF,
+				Type:      iface.TypeF,
+				Proto:     iface.ProtoF,
+				Address:   iface.AddressF,
+				Mask:      iface.MaskF,
+				Gateway:   iface.GatewayF,
+				MAC:       iface.MACF,
+				MTU:       iface.MTUF,
+				QinQ:      iface.QinQF,
+				External:  node.External(),
+			})
+		}
+	}
+
+	return segments
 }
 
 func (t TopologySpec) FindNodeByName(name string) ifaces.NodeSpec { //nolint:ireturn // interface

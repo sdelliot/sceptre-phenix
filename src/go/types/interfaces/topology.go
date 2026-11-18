@@ -7,6 +7,7 @@ type TopologySpec interface { //nolint:interfacebloat // legacy interface
 	Nodes() []NodeSpec
 	BootableNodes() []NodeSpec
 	SchedulableNodes(string) []NodeSpec
+	NetworkSegments() []NetworkSegment
 
 	FindNodeByName(string) NodeSpec
 	FindNodesWithLabels(...string) []NodeSpec
@@ -20,6 +21,26 @@ type TopologySpec interface { //nolint:interfacebloat // legacy interface
 
 	// accepts name of default bridge
 	Init(string) error
+}
+
+type NetworkSegment struct {
+	Bridge    string                   `json:"bridge"`
+	VLAN      string                   `json:"vlan"`
+	Endpoints []NetworkSegmentEndpoint `json:"endpoints"`
+}
+
+type NetworkSegmentEndpoint struct {
+	Hostname  string `json:"hostname"`
+	Interface string `json:"interface"`
+	Type      string `json:"type"`
+	Proto     string `json:"proto"`
+	Address   string `json:"address"`
+	Mask      int    `json:"mask"`
+	Gateway   string `json:"gateway"`
+	MAC       string `json:"mac"`
+	MTU       int    `json:"mtu"`
+	QinQ      bool   `json:"qinq"`
+	External  bool   `json:"external"`
 }
 
 type NodeSpec interface { //nolint:interfacebloat // legacy interface
